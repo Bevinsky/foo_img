@@ -331,11 +331,11 @@ public:
 
 
   ~img_type(){
-    if (hz != nullptr) delete hz;
-    if (phase != nullptr) delete phase;
-    if (buffer != nullptr) delete buffer;
-    if (sinlook != nullptr) delete sinlook;
-    if (oamp != nullptr) delete oamp;
+    delete hz;
+    delete phase;
+    delete buffer;
+    delete sinlook;
+    delete oamp;
 
     if (img != nullptr) {
       for (int i = 0; i < w; i++)
