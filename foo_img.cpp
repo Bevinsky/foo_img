@@ -37,22 +37,22 @@ advconfig_checkbox_factory lowpass_enabled(
 
 
 class img_type : public input_singletrack_impl {
-	typedef pfc::array_t<uint8_t> BArray;
-	std::string n;
-	file_ptr myFile;
-	t_filestats fs;
-	int c;
-	BArray raw;
+  typedef pfc::array_t<uint8_t> BArray;
+  std::string n;
+  file_ptr myFile;
+  t_filestats fs;
+  int c;
+  BArray raw;
   
-	float **img = nullptr;
-	audio_sample * buffer = nullptr;
+  float **img = nullptr;
+  audio_sample * buffer = nullptr;
 
-	int w, h;
+  int w, h;
   float *phase = nullptr, *hz = nullptr;
-	float bdw, vol;
-	int spp;
-	int xx;
-	float argv;
+  float bdw, vol;
+  int spp;
+  int xx;
+  float argv;
 
   float *oamp = nullptr;
 
@@ -61,38 +61,38 @@ class img_type : public input_singletrack_impl {
   //Blob imBlob;
   Magick::Image imImg;
 
-	float * sinlook = nullptr;
+  float * sinlook = nullptr;
 
-	static const float PI;
-	static const int LOOKUP_SIZE = 6000;
+  static const float PI;
+  static const int LOOKUP_SIZE = 6000;
 
   
 
-	int get_int32(BArray arr, int at) {
-		return (arr[at+3] << 24) | (arr[at+2] << 16) | (arr[at+1] << 8) | (arr[at]);
+  int get_int32(BArray arr, int at) {
+    return (arr[at+3] << 24) | (arr[at+2] << 16) | (arr[at+1] << 8) | (arr[at]);
   }
   int get_int16(BArray arr, int at) {
     return (arr[at + 1] << 8) | (arr[at]);
   }
 
-	float my_sin(float val) {
-		float mult = val / (2*PI);
-		mult -= (int)(mult);
+  float my_sin(float val) {
+    float mult = val / (2*PI);
+    mult -= (int)(mult);
 
     float rem = (LOOKUP_SIZE - 1) * mult;
-		int idx = (int)(rem);
+    int idx = (int)(rem);
     float ret = sinlook[idx];
-		return ret;
-	}
+    return ret;
+  }
 
 public:
-	void open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort)	{
+  void open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort)  {
 
-		input_open_file_helper(p_filehint, p_path, p_reason, p_abort);
-		if(p_filehint == nullptr) {
-			return;
-		}
-		myFile = p_filehint;
+    input_open_file_helper(p_filehint, p_path, p_reason, p_abort);
+    if(p_filehint == nullptr) {
+      return;
+    }
+    myFile = p_filehint;
     n = std::string(p_path);
     myFile->read_till_eof(raw, p_abort);
 
@@ -165,33 +165,33 @@ public:
 
     console::printf("foo_img::open: %s", p_path);
 
-	}
+  }
 
 
-	void get_info(file_info & p_info,abort_callback & p_abort) {
-		p_info.info_set_int("samplerate", 44100);
-		p_info.info_set_int("channels", 1);
-		p_info.info_set_int("bitspersample", 32);
-		p_info.info_set("codec", "PCM");
-		p_info.info_set("encoding", "lossless");
+  void get_info(file_info & p_info,abort_callback & p_abort) {
+    p_info.info_set_int("samplerate", 44100);
+    p_info.info_set_int("channels", 1);
+    p_info.info_set_int("bitspersample", 32);
+    p_info.info_set("codec", "PCM");
+    p_info.info_set("encoding", "lossless");
     p_info.set_length((w * spp) / 44100.0);
     p_info.info_set_bitrate(44100 * 32);
     
-		int p = n.rfind('\\');
-		p_info.meta_add("TITLE", n.substr(p+1).c_str());
-	}
+    int p = n.rfind('\\');
+    p_info.meta_add("TITLE", n.substr(p+1).c_str());
+  }
 
-	t_filestats get_file_stats(abort_callback & p_abort) {
-		return fs;
-	}
+  t_filestats get_file_stats(abort_callback & p_abort) {
+    return fs;
+  }
 
-	void decode_initialize(unsigned p_flags,abort_callback & p_abort) {
+  void decode_initialize(unsigned p_flags,abort_callback & p_abort) {
     console::printf("foo_img::initialize: %s", n.c_str());
     int w = this->w;
     int h = this->h;
     
-		img = new float*[w];
-		float _min = 1.0, _max = 0.0;
+    img = new float*[w];
+    float _min = 1.0, _max = 0.0;
 
     Pixels cache(imImg);
     PixelPacket *pix;
@@ -214,23 +214,23 @@ public:
     }
     
 
-		float scale = (_max-_min);
+    float scale = (_max-_min);
 
-		for (int x = 0; x < w; x++) {
+    for (int x = 0; x < w; x++) {
       float *c = img[x];
-			for (int y = 0; y < h; y++) {
-				c[y] = ((c[y] - _min) * scale);
-			}
-		}
+      for (int y = 0; y < h; y++) {
+        c[y] = ((c[y] - _min) * scale);
+      }
+    }
     
 
-	}
+  }
 
-	bool decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
-		if(xx >= w)
-			return false;
+  bool decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
+    if(xx >= w)
+      return false;
 
-		float *col = img[xx];
+    float *col = img[xx];
     int w = this->w;
     int h = this->h;
     int xx = this->xx;
@@ -238,61 +238,61 @@ public:
 
     float max = 0;
 
-		int pos = xx * spp;
-		for(int s = 0; s < spp; s++) {
-			float sum = 0;
-			int smp = pos + s;
+    int pos = xx * spp;
+    for(int s = 0; s < spp; s++) {
+      float sum = 0;
+      int smp = pos + s;
       float arg = smp * PI * 2 / 44100.0;
-			for(int y = 0; y < h; y++) {
-				float p = col[y];
+      for(int y = 0; y < h; y++) {
+        float p = col[y];
         float amp = (p * 0.2 + p*p * 0.8);
         if (oamp != nullptr) {
           amp = oamp[y] * 0.92 + amp * 0.08;
           oamp[y] = amp;
         }
         float pt = my_sin(hz[y] * arg + phase[y]);
-				sum += pt*amp;
-			}
+        sum += pt*amp;
+      }
       sum = sum / vol;
-			if(sum < -1.0)
-				sum = -1.0;
-			else if(sum > 1.0)
-				sum = 1.0;
+      if(sum < -1.0)
+        sum = -1.0;
+      else if(sum > 1.0)
+        sum = 1.0;
         
-			buffer[s] = sum;
-		}
+      buffer[s] = sum;
+    }
 
-		this->xx++;
+    this->xx++;
 
-		p_chunk.set_data(buffer, spp, 1, 44100);
-		return true;
-	}
+    p_chunk.set_data(buffer, spp, 1, 44100);
+    return true;
+  }
 
-	void decode_seek(double p_seconds,abort_callback & p_abort) {
+  void decode_seek(double p_seconds,abort_callback & p_abort) {
     double samps = p_seconds * 44100;
     samps /= spp;
     xx = (int)samps;
-	}
+  }
 
-	bool decode_can_seek() {
-		return true;
-	}
+  bool decode_can_seek() {
+    return true;
+  }
 
-	bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta){
-		return false;
-	}
+  bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta){
+    return false;
+  }
 
-	bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta){
-		return false;
-	}
+  bool decode_get_dynamic_info_track(file_info & p_out, double & p_timestamp_delta){
+    return false;
+  }
 
-	void decode_on_idle(abort_callback & p_abort){
-	}
+  void decode_on_idle(abort_callback & p_abort){
+  }
 
-	void retag(const file_info & p_info,abort_callback & p_abort){
-		// don't care
-	}
-	
+  void retag(const file_info & p_info,abort_callback & p_abort){
+    // don't care
+  }
+  
   static bool endswith(const char * s1, const char * s2) {
     return strlen(s1) >= strlen(s2) && stricmp(s1 + strlen(s1) - strlen(s2), s2) == 0;
   }
@@ -301,12 +301,12 @@ public:
   }
 
 
-	static bool g_is_our_content_type(const char * p_content_type){
-		return stricmp(p_content_type, "image/bmp") == 0 ||
+  static bool g_is_our_content_type(const char * p_content_type){
+    return stricmp(p_content_type, "image/bmp") == 0 ||
       stricmp(p_content_type, "image/png") == 0 ||
       stricmp(p_content_type, "image/jpeg") == 0;
-	}
-	static bool g_is_our_path(const char * p_path,const char * p_extension) {
+  }
+  static bool g_is_our_path(const char * p_path,const char * p_extension) {
     if (strncmp(p_path, "unpack:", strlen("unpack:")) == 0) {
       return false; // don't open packs
     }
@@ -323,11 +323,11 @@ public:
       return false;
     
 
-		return stricmp(p_extension, "bmp") == 0 || 
+    return stricmp(p_extension, "bmp") == 0 || 
       stricmp(p_extension, "jpg") == 0 ||
       stricmp(p_extension, "jpeg") == 0 ||
       stricmp(p_extension, "png") == 0;
-	}
+  }
 
 
   ~img_type(){
