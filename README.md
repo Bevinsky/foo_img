@@ -1,5 +1,7 @@
 This foobar plugin lets you open BMP, PNG and JPEG images and play their spectrogram.
 
+![image](http://i.imgur.com/P3tjVfI.jpg)
+
 It's cool
 
 ## How to compile
