@@ -4,10 +4,10 @@ using namespace Magick;
 
 DECLARE_COMPONENT_VERSION("Image decoder", "1.1.0", "Open BMP, PNG and JPG images in foobar!\n\nBe sure to add the image file extensions to your media library exclusions or you will have a bad time.\n;*.jpg;*.png;*.bmp;*.jpeg;");
 
-static const GUID samples_per_pixel_guid = { 0xcaa64014, 0x6c9c, 0x46b2, { 0x7b, 0xa7, 0xa, 0x5c, 0xbb, 0x10, 0x2f, 0xb6 } };
-advconfig_integer_factory samples_per_pixel(
+static const GUID spec_height_guid = { 0xcaa64014, 0x6c9c, 0x46b2, { 0x7b, 0xa7, 0xa, 0x5c, 0xbb, 0x10, 0x2f, 0xb6 } };
+advconfig_integer_factory spec_height(
   "Image decoding spectrogram height",
-  samples_per_pixel_guid,
+  spec_height_guid,
   advconfig_branch::guid_branch_decoding,
   0.0,
   900,
@@ -50,6 +50,7 @@ class img_type : public input_singletrack_impl {
   int w, h;
   float *phase = nullptr, *hz = nullptr;
   float bdw, vol;
+  int spech;
   int spp;
   int xx;
   float argv;
@@ -107,17 +108,17 @@ public:
 
     w = imImg.columns();
     h = imImg.rows();
-    spp = samples_per_pixel.get();
-    spp = -0.7646 * (-spp - 332);
+    spech = spec_height.get();
+    spp = 870; // just works
     vol = amp_scale.get();
     vol = 18189 * pow(2.71828, -9.45817 * (vol / 1000.0));
     if (vol <= 0)
       vol = 1;
     
-    if (h > spp) {
+    if (h > spech) {
       try {
         float rat = (float)w / h;
-        Geometry geom((int)(spp*rat), spp);
+        Geometry geom((int)(spech*rat), spech);
         imImg.resize(geom);
         w = imImg.columns();
         h = imImg.rows();
@@ -146,14 +147,15 @@ public:
       oamp = new float[h];
 
     srand(time(NULL));
-    bdw = 22000.0 / spp;
+    bdw = 22000.0 / spech;
 
     /*bdw = 22000.0 / h;
     if (bdw > (22000.0 / spp))
       bdw = (22000.0 / spp);*/
     float logmul = 22000.0 / std::pow(h, 2.71828);
     for (int a = 0; a < h; a++) {
-      phase[a] = ((rand() % 20000) / 19999.0) * 2 * PI;
+      //phase[a] = ((rand() % 20000) / 19999.0) * 2 * PI;
+      phase[a] = ((float)rand() / RAND_MAX) * PI;
       //phase[a] = ((1140671485 * a + 12820163) % 10000) / 10000.0 * 2 * PI;
       //phase[a] = ((float)(a % 12) / h) *PI/6;
       hz[a] = bdw * (h - a - 1);
@@ -331,16 +333,16 @@ public:
 
 
   ~img_type(){
-    delete hz;
-    delete phase;
-    delete buffer;
-    delete sinlook;
-    delete oamp;
+    delete[] hz;
+    delete[] phase;
+    delete[] buffer;
+    delete[] sinlook;
+    delete[] oamp;
 
     if (img != nullptr) {
       for (int i = 0; i < w; i++)
-        delete img[i];
-      delete img;
+        delete[] img[i];
+      delete[] img;
     }
   }
 };
