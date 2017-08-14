@@ -44,27 +44,27 @@ class img_type : public input_singletrack_impl {
   int c;
   BArray raw;
   
-  float **img = nullptr;
+  double **img = nullptr;
   audio_sample * buffer = nullptr;
 
   int w, h;
-  float *phase = nullptr, *hz = nullptr;
-  float bdw, vol;
+  double *phase = nullptr, *hz = nullptr;
+  double bdw, vol;
   int spech;
   int spp;
   int xx;
-  float argv;
+  double argv;
 
-  float *oamp = nullptr;
+  double *oamp = nullptr;
 
   //ILuint ilimg = 0;
 
   //Blob imBlob;
   Magick::Image imImg;
 
-  float * sinlook = nullptr;
+  double * sinlook = nullptr;
 
-  static const float PI;
+  static const double PI;
   static const int LOOKUP_SIZE = 6000;
 
   
@@ -76,13 +76,13 @@ class img_type : public input_singletrack_impl {
     return (arr[at + 1] << 8) | (arr[at]);
   }
 
-  float my_sin(float val) {
-    float mult = val / (2*PI);
+  double my_sin(double val) {
+    double mult = val / (2*PI);
     mult -= (int)(mult);
 
-    float rem = (LOOKUP_SIZE - 1) * mult;
+    double rem = (LOOKUP_SIZE - 1) * mult;
     int idx = (int)(rem);
-    float ret = sinlook[idx];
+    double ret = sinlook[idx];
     return ret;
   }
 
@@ -117,7 +117,7 @@ public:
     
     if (h > spech) {
       try {
-        float rat = (float)w / h;
+        double rat = (double)w / h;
         Geometry geom((int)(spech*rat), spech);
         imImg.resize(geom);
         w = imImg.columns();
@@ -133,18 +133,18 @@ public:
     
     
 
-    sinlook = new float[LOOKUP_SIZE];
+    sinlook = new double[LOOKUP_SIZE];
     for (int i = 0; i < LOOKUP_SIZE; i++) {
-      float ang = (i / (float)(LOOKUP_SIZE - 1)) * 2 * PI;
-      sinlook[i] = std::sinf(ang);
+      double ang = (i / (double)(LOOKUP_SIZE - 1)) * 2 * PI;
+      sinlook[i] = std::sin(ang);
     }
 
-    hz = new float[h];
-    phase = new float[h];
+    hz = new double[h];
+    phase = new double[h];
     buffer = new audio_sample[spp];
     
     if (lowpass_enabled.get())
-      oamp = new float[h];
+      oamp = new double[h];
 
     srand(time(NULL));
     bdw = 22000.0 / spech;
@@ -152,12 +152,12 @@ public:
     /*bdw = 22000.0 / h;
     if (bdw > (22000.0 / spp))
       bdw = (22000.0 / spp);*/
-    float logmul = 22000.0 / std::pow(h, 2.71828);
+    double logmul = 22000.0 / std::pow(h, 2.71828);
     for (int a = 0; a < h; a++) {
       //phase[a] = ((rand() % 20000) / 19999.0) * 2 * PI;
-      phase[a] = ((float)rand() / RAND_MAX) * PI;
+      phase[a] = ((double)rand() / RAND_MAX) * 2 * PI;
       //phase[a] = ((1140671485 * a + 12820163) % 10000) / 10000.0 * 2 * PI;
-      //phase[a] = ((float)(a % 12) / h) *PI/6;
+      //phase[a] = ((double)(a % 12) / h) *PI/6;
       hz[a] = bdw * (h - a - 1);
 
       if (oamp != nullptr)
@@ -192,20 +192,20 @@ public:
     int w = this->w;
     int h = this->h;
     
-    img = new float*[w];
-    float _min = 1.0, _max = 0.0;
+    img = new double*[w];
+    double _min = 1.0, _max = 0.0;
 
     Pixels cache(imImg);
     PixelPacket *pix;
     pix = cache.get(0, 0, w, h);
     
     for (int x = 0; x < w; x++) {
-      img[x] = new float[h];
+      img[x] = new double[h];
       for (int y = h - 1; y >= 0; y--) {
         PixelPacket pp = pix[y*w + x];
 
-        //float v = ((pow(pp.red / 65535.0, 2.2) * 0.2989 + pow(pp.green / 65535.0, 2.2) * 0.5870 + pow(pp.blue / 65535.0, 2.2) * 0.1140));
-        float v = (pp.red *  0.2989 + pp.green *  0.5870 + pp.blue *  0.1140) / 65535;
+        //double v = ((pow(pp.red / 65535.0, 2.2) * 0.2989 + pow(pp.green / 65535.0, 2.2) * 0.5870 + pow(pp.blue / 65535.0, 2.2) * 0.1140));
+        double v = (pp.red *  0.2989 + pp.green *  0.5870 + pp.blue *  0.1140) / 65535;
         img[x][y] = v;
 
         if (v < _min)
@@ -216,10 +216,10 @@ public:
     }
     
 
-    float scale = (_max-_min);
+    double scale = (_max-_min);
 
     for (int x = 0; x < w; x++) {
-      float *c = img[x];
+      double *c = img[x];
       for (int y = 0; y < h; y++) {
         c[y] = ((c[y] - _min) * scale);
       }
@@ -232,28 +232,32 @@ public:
     if(xx >= w)
       return false;
 
-    float *col = img[xx];
+    double *col = img[xx];
     int w = this->w;
     int h = this->h;
     int xx = this->xx;
     int spp = this->spp;
 
-    float max = 0;
+    double max = 0;
 
     int pos = xx * spp;
     for(int s = 0; s < spp; s++) {
-      float sum = 0;
+      double sum = 0;
       int smp = pos + s;
-      float arg = smp * PI * 2 / 44100.0;
+      double arg = smp * PI * 2 / 44100.0;
+      //arg = std::fmod(arg, 2 * PI);
       for(int y = 0; y < h; y++) {
-        float p = col[y];
-        float amp = (p * 0.2 + p*p * 0.8);
+        double p = col[y];
+        double amp = (p * 0.2 + p*p * 0.8);
         if (oamp != nullptr) {
-          amp = oamp[y] * 0.92 + amp * 0.08;
+          //amp = oamp[y] * 0.92 + amp * 0.08;
+          amp = oamp[y] * 0.995 + amp * 0.005;
           oamp[y] = amp;
         }
-        float pt = my_sin(hz[y] * arg + phase[y]);
-        sum += pt*amp;
+        double pt = my_sin(hz[y] * arg + phase[y]);
+        //double prog = (double)s / spp;
+        //prog = -4.0844*prog*prog + 4.0844 * prog + 1.687;
+        sum += pt*amp;// *prog;
       }
       sum = sum / vol;
       if(sum < -1.0)
@@ -347,7 +351,7 @@ public:
   }
 };
 
-const float img_type::PI = 3.14159265359;
+const double img_type::PI = 3.14159265359;
 
 input_singletrack_factory_t<img_type> fac;
 
